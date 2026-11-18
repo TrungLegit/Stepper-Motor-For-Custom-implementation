@@ -60,6 +60,8 @@ void CaptureEngine::pause() {
 void CaptureEngine::resume() {
     if (m_state == CaptureState::PAUSED) {
         m_pause_requested = false;
+        // Resume from next pending pose index
+        ++m_current_pose_idx;
         if (m_current_pose_idx < m_poses.size()) {
             dispatchMoveToPose(m_poses[m_current_pose_idx]);
             transitionTo(CaptureState::MOVE_TO_POSE, 0);
