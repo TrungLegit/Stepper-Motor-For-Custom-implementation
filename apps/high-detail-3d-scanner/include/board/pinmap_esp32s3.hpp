@@ -2,7 +2,15 @@
 
 #include <cstdint>
 #include "hal/HalTypes.hpp"
+#if __has_include("esp32s3/ESP32S3_HAL.hpp")
+#include "esp32s3/ESP32S3_HAL.hpp"
+#elif __has_include("../../../packages/motion-core/hal_impl/esp32s3/ESP32S3_HAL.hpp")
+#include "../../../packages/motion-core/hal_impl/esp32s3/ESP32S3_HAL.hpp"
+#elif __has_include("hal_impl/esp32s3/ESP32S3_HAL.hpp")
+#include "hal_impl/esp32s3/ESP32S3_HAL.hpp"
+#else
 #include "../../packages/motion-core/hal_impl/esp32s3/ESP32S3_HAL.hpp"
+#endif
 
 /**
  * @file pinmap_esp32s3.hpp
