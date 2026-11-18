@@ -24,12 +24,13 @@ struct AxisPins {
     uint8_t tmc_slave_addr = 0; // 0 to 3
 };
 
-// UART configuration for TMC2209 bus on ESP32-S3
+// UART configuration for TMC2209 bus on ESP32-S3 (optional for A4988 / DRV8825 generic drivers)
 struct UartPins {
     uint8_t  uart_num = 1;     // UART1 or UART2
     int8_t   tx_pin = 17;
     int8_t   rx_pin = 18;
     uint32_t baud_rate = 115200;
+    bool     enabled = true;   // If false, operates purely in generic STEP/DIR/EN mode
 };
 
 /**
@@ -135,6 +136,7 @@ private:
 
     mutable std::mutex mutex_;
     bool initialized_ = false;
+    bool uart_initialized_ = false;
 };
 
 } // namespace esp32s3

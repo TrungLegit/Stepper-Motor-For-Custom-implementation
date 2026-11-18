@@ -21,7 +21,7 @@ ESP32S3_HAL::ESP32S3_HAL(const AxisPins pins[MAX_AXES], const UartPins& uart_cfg
 }
 
 ESP32S3_HAL::~ESP32S3_HAL() {
-    if (initialized_) {
+    if (initialized_ && uart_initialized_) {
         uart_driver_delete(static_cast<uart_port_t>(uart_pins_.uart_num));
     }
 }
@@ -53,10 +53,15 @@ bool ESP32S3_HAL::init() {
         }
     }
 
-    // 2. Configure TMC2209 UART
-    if (!initUart()) {
-        ESP_LOGE(TAG, "Failed to initialize TMC2209 UART on port %d", uart_pins_.uart_num);
-        return false;
+    // 2. Configure TMC2209 UART (optional for A4988 / DRV8825 generic drivers)
+    if (uart_pins_.enabled && uart_pins_.tx_pin >= 0 && uart_pins_.rx_pin >= 0) {
+        if (!initUart()) {
+            ESP_LOGW(TAG, "UART init failed; falling back to generic step/dir driver mode");
+        } else {
+            uart_initialized_ = true;
+        }
+    } else {
+        ESP_LOGI(TAG, "Operating in generic step/dir driver mode (A4988/DRV8825 compatible)");
     }
 
     initialized_ = true;
@@ -178,6 +183,10 @@ void ESP32S3_HAL::step(uint8_t axis) {
 bool ESP32S3_HAL::configureDriver(uint8_t axis, const DriverConfig& cfg) {
     if (axis >= MAX_AXES) return false;
     driver_configs_[axis] = cfg;
+    if (!uart_initialized_) {
+        // Generic step/dir mode (A4988 / DRV8825): config stored, no UART register writes needed
+        return true;
+    }
     bool ok = true;
     ok &= setMicrosteps(axis, cfg.microsteps);
     ok &= setRunCurrent(axis, cfg.run_current_amps);
