@@ -8,7 +8,9 @@ CaptureEngine::CaptureEngine(MotionPlanner& planner, ScannerKinematics& kinemati
     : m_planner(planner), m_kinematics(kinematics) {}
 
 CaptureEngine::~CaptureEngine() {
-    abort();
+    if (isScanning()) {
+        abort();
+    }
 }
 
 void CaptureEngine::init(IGpioHAL* gpio_hal, ITimerHAL* timer_hal) {

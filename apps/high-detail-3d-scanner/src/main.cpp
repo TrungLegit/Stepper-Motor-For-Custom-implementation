@@ -183,5 +183,10 @@ int main(int argc, char** argv) {
         std::cout << "[Scanner] Simulation finished successfully with zero errors.\n";
     }
 
+    // Clean up instances in strict dependency order before static destruction
+    g_capture_engine.reset();
+    g_planner.reset();
+    g_hal.reset();
+
     return 0;
 }
