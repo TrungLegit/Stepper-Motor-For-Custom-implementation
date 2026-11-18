@@ -43,3 +43,41 @@ else()
         ${HAL_SRCS}
     )
 endif()
+
+if(BUILD_TESTS)
+    set(SCANNER_TEST_SOURCES
+        tests/test_scanner.cpp
+        src/ScanPathGenerator.cpp
+        src/CaptureEngine.cpp
+        src/PoseExporter.cpp
+    )
+
+    if(TARGET motion_core)
+        add_executable(test_scanner ${SCANNER_TEST_SOURCES})
+        target_include_directories(test_scanner PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/hal_impl
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/hal_impl/mock
+        )
+        target_link_libraries(test_scanner PRIVATE motion_core)
+    else()
+        add_executable(test_scanner
+            ${SCANNER_TEST_SOURCES}
+            ${PROTOCOL_SRCS}
+            ${PLANNER_SRCS}
+            ${MOCK_HAL_SRCS}
+            ${HAL_SRCS}
+        )
+        target_include_directories(test_scanner PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/hal_impl
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../packages/motion-core/hal_impl/mock
+        )
+    endif()
+
+    add_test(NAME test_scanner COMMAND test_scanner)
+endif()
