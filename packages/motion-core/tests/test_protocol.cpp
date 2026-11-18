@@ -374,20 +374,26 @@ bool test_meshlab_and_3d_scanning_schema() {
     return true;
 }
 
-int main() {
+bool run_all_protocol_tests() {
     std::cout << "========================================\n";
     std::cout << " RUNNING PROTOCOL & SAFETY UNIT TESTS   \n";
     std::cout << "========================================\n";
 
-    if (!test_json_parsing_and_serialization()) return 1;
-    if (!test_packet_buffer()) return 1;
-    if (!test_json_rpc_compliance()) return 1;
-    if (!test_safety_and_estop()) return 1;
-    if (!test_telemetry_emitter()) return 1;
-    if (!test_meshlab_and_3d_scanning_schema()) return 1;
+    if (!test_json_parsing_and_serialization()) return false;
+    if (!test_packet_buffer()) return false;
+    if (!test_json_rpc_compliance()) return false;
+    if (!test_safety_and_estop()) return false;
+    if (!test_telemetry_emitter()) return false;
+    if (!test_meshlab_and_3d_scanning_schema()) return false;
 
     std::cout << "========================================\n";
     std::cout << " ALL PROTOCOL & SAFETY TESTS PASSED!    \n";
     std::cout << "========================================\n";
-    return 0;
+    return true;
 }
+
+#ifndef TEST_COMBINED_RUNNER
+int main() {
+    return run_all_protocol_tests() ? 0 : 1;
+}
+#endif
