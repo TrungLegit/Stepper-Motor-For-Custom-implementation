@@ -29,9 +29,11 @@ bool HomingEngine::startHoming(uint8_t axis) {
         return false;
     }
 
-    m_sequence.clear();
-    m_sequence.push_back(axis);
-    m_sequence_idx = 0;
+    if (m_sequence.empty() || m_sequence[m_sequence_idx] != axis) {
+        m_sequence.clear();
+        m_sequence.push_back(axis);
+        m_sequence_idx = 0;
+    }
     m_current_axis = axis;
 
     const auto& cfg = m_configs[axis];

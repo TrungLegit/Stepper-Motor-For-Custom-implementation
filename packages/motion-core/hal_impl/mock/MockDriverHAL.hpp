@@ -167,6 +167,9 @@ public:
         if (axis >= MAX_AXES) return false;
         std::lock_guard<std::mutex> lock(mutex_);
         registers_[axis][reg_addr] = value;
+        if (reg_addr == tmc2209::REG_SG_RESULT) {
+            sg_result_[axis] = static_cast<uint16_t>(value);
+        }
         return true;
     }
 
