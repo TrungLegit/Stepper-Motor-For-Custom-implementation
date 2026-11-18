@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stepper Motion Core — 3D Scanner Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Three.js + OrbitControls for 3D Viewpoint Preview -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="logo-area">
+      <h1>STEPPER MOTION CORE</h1>
+      <span class="badge">ESP32-S3 / RP2040</span>
+      <span id="state-badge" class="badge">IDLE</span>
+    </div>
+
+    <div class="connection-bar">
+      <span id="status-dot" class="status-dot"></span>
+      <input id="target-url" type="text" class="input-field" value="ws://192.168.4.1:81" placeholder="ws://ip:port or 'mock'" style="width: 200px;">
+      <button id="connect-btn" class="btn">Connect</button>
+      <button id="btn-estop" class="btn btn-estop">E-STOP</button>
+      <button id="btn-reset" class="btn btn-secondary">Reset</button>
+    </div>
+  </header>
+
+  <!-- High-Priority E-STOP Warning Banner -->
+  <div id="estop-alert" style="display: none; background-color: var(--accent-red); color: white; text-align: center; font-weight: 700; padding: 0.5rem; letter-spacing: 0.05em;">
+    EMERGENCY STOP ACTIVE — Motion locked until Reset.
+  </div>
+
+  <!-- Main Grid Workspace -->
+  <div class="main-layout">
+
+    <!-- 3D Viewport Area -->
+    <div class="viewport-container">
+      <div id="three-canvas"></div>
+      <div class="viewport-overlay">
+        <h4>3D Scan Lattice View</h4>
+        <div>Target: Origin (0, 0, 0)</div>
+        <div>Golden Ratio Fibonacci Sphere</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Click & Drag: Orbit · Scroll: Zoom</div>
+      </div>
+    </div>
+
+    <!-- Controls Sidebar -->
+    <div class="control-sidebar">
+
+      <!-- Live Telemetry Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Coordinates</span>
+          <button id="btn-home-all" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Home All</button>
+        </div>
+        <div class="telemetry-grid">
+          <div class="telemetry-cell">
+            <div class="telemetry-label">Azimuth (A)</div>
+            <div id="pos-a" class="telemetry-val" style="color: var(--accent-cyan);">0.00°</div>
+          </div>
+          <div class="telemetry-cell">
+            <div class="telemetry-label">Elevation (B)</div>
+            <div id="pos-b" class="telemetry-val" style="color: var(--accent-blue);">0.00°</div>
+          </div>
+          <div class="telemetry-cell">
+            <div class="telemetry-label">Focus (Z)</div>
+            <div id="pos-z" class="telemetry-val" style="color: var(--accent-green);">0.00mm</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Manual Jog Controls Card -->
+      <div class="card">
+        <div class="card-title">Jog Controls</div>
+        <div class="step-selector">
+          <button class="step-btn" data-step="0.5">0.5°</button>
+          <button class="step-btn" data-step="1.0">1.0°</button>
+          <button class="step-btn active" data-step="5.0">5.0°</button>
+          <button class="step-btn" data-step="15.0">15°</button>
+          <button class="step-btn" data-step="45.0">45°</button>
+        </div>
+
+        <div class="jog-controls">
+          <div class="jog-row">
+            <span style="width: 70px; font-size: 0.85rem; font-weight: 600;">Azimuth:</span>
+            <button class="jog-btn" data-axis="A" data-jog="-1">◄ A-</button>
+            <button class="jog-btn" data-axis="A" data-jog="1">A+ ►</button>
+          </div>
+          <div class="jog-row">
+            <span style="width: 70px; font-size: 0.85rem; font-weight: 600;">Elevation:</span>
+            <button class="jog-btn" data-axis="B" data-jog="-1">▼ B-</button>
+            <button class="jog-btn" data-axis="B" data-jog="1">▲ B+</button>
+          </div>
+          <div class="jog-row">
+            <span style="width: 70px; font-size: 0.85rem; font-weight: 600;">Focus Z:</span>
+            <button class="jog-btn" data-axis="Z" data-jog="-1">Z -</button>
+            <button class="jog-btn" data-axis="Z" data-jog="1">Z +</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Automated 3D Scan Card -->
+      <div class="card">
+        <div class="card-title">3D Photogrammetry Scan</div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center;">
+          <label style="font-size: 0.85rem; color: var(--text-secondary); width: 80px;">Poses:</label>
+          <input id="scan-poses-input" type="number" class="input-field" value="56" min="10" max="300" style="width: 70px;">
+          <label style="font-size: 0.85rem; color: var(--text-secondary); margin-left: 0.5rem;">Settle ms:</label>
+          <input id="scan-settle-input" type="number" class="input-field" value="150" min="20" max="1000" style="width: 70px;">
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <button id="btn-start-scan" class="btn" style="flex: 2; background-color: var(--accent-green);">Start Scan</button>
+          <button id="btn-abort-scan" class="btn btn-danger" style="flex: 1;" disabled>Abort</button>
+        </div>
+
+        <div style="font-size: 0.8rem; display: flex; justify-content: space-between; color: var(--text-secondary);">
+          <span>Progress</span>
+          <span id="scan-progress-text">Ready</span>
+        </div>
+        <div class="progress-bar">
+          <div id="scan-progress-bar" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Real-time Console Log -->
+      <div class="card" style="flex-grow: 1; display: flex; flex-direction: column;">
+        <div class="card-title">
+          <span>Telemetry & JSON-RPC Stream</span>
+          <button id="btn-clear-log" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Clear</button>
+        </div>
+        <div id="log-console" class="log-console"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
